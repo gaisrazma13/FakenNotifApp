@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FakeNotifApp</title>
+
+<style>
+body{
+margin:0;
+background:black;
+font-family:system-ui;
+overflow:hidden;
+color:white;
+}
+
+/* STATUS */
+.statusbar{
+position:fixed;
+top:0;
+width:100%;
+height:26px;
+background:rgba(0,0,0,0.6);
+display:flex;
+justify-content:space-between;
+padding:3px 10px;
+font-size:12px;
+z-index:5;
+}
+
+/* VIDEO */
+.videoBox{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+width:90%;
+max-width:380px;
+z-index:1;
+}
+video{width:100%;}
+
+/* BLUR IPHONE STYLE */
+.blur{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,0);
+backdrop-filter:blur(0px);
+transition:0.4s ease;
+z-index:50;
+pointer-events:none;
+}
+.blur.active{
+background:rgba(0,0,0,0.25);
+backdrop-filter:blur(18px);
+}
+
+/* STACK */
+.stack{
+position:fixed;
+top:40px;
+left:50%;
+transform:translateX(-50%);
+width:95%;
+max-width:420px;
+display:flex;
+flex-direction:column;
+gap:8px;
+z-index:9999;
+}
+
+/* NOTIF */
+.notif{
+background:rgba(30,30,30,0.95);
+border-radius:12px;
+padding:10px;
+display:flex;
+gap:10px;
+align-items:center;
+animation:pop 0.25s ease;
+}
+
+@keyframes pop{
+from{transform:translateY(-10px);opacity:0}
+to{transform:translateY(0);opacity:1}
+}
+
+.icon img{
+width:40px;
+height:40px;
+border-radius:10px;
+}
+
+/* PANEL */
+.panel{
+position:fixed;
+bottom:120px;
+width:100%;
+padding:10px;
+box-sizing:border-box;
+z-index:10;
+}
+
+select,input,button{
+width:100%;
+padding:10px;
+margin-bottom:6px;
+border:none;
+border-radius:8px;
+background:#1c1c1c;
+color:white;
+}
+
+/* HISTORY */
+.history{
+position:fixed;
+bottom:0;
+width:100%;
+height:120px;
+background:rgba(0,0,0,0.85);
+overflow-y:auto;
+padding:8px;
+font-size:12px;
+z-index:10;
+}
+
+.item{
+display:flex;
+gap:10px;
+align-items:center;
+padding:6px;
+border-bottom:1px solid #333;
+}
+
+.item img{
+width:32px;
+height:32px;
+border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="statusbar">
+<div id="clock">00:00</div>
+<div>4G</div>
+</div>
+
+<div class="videoBox">
+<video autoplay loop playsinline>
+<source src="https://files.catbox.moe/5yfazz.mp4">
+</video>
+</div>
+
+<!-- BLUR -->
+<div class="blur" id="blur"></div>
+
+<!-- STACK -->
+<div class="stack" id="stack"></div>
+
+<!-- PANEL -->
+<div class="panel">
+
+<select id="app">
+<option value="">Pilih App</option>
+<option value="ff">Free Fire</option>
+<option value="wa">WhatsApp</option>
+<option value="ml">Mobile Legends</option>
+<option value="mc">Minecraft</option>
+<option value="dana">DANA</option>
+<option value="gopay">GoPay</option>
+<option value="bri">BRI</option>
+<option value="hok">Honor Of Kings</option>
+<option value="pubg">PUBG</option>
+</select>
+
+<input id="customName" placeholder="Ubah nama,orang/app">
+<input id="text" placeholder="Isi pesan">
+
+<button onclick="send()">Kirim Notif</button>
+<button onclick="toggleBlur()">Blur Mode!</button>
+<button onclick="cycleColor()">ganti Warna!</button>
+
+</div>
+
+<!-- HISTORY -->
+<div class="history" id="history"></div>
+
+<!-- SOUND -->
+<audio id="sound">
+<source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+</audio>
+
+<script>
+const apps={
+ff:{n:"Free Fire",i:"https://h.uguu.se/tjgbKxjB.jpg"},
+wa:{n:"WhatsApp",i:"https://h.uguu.se/yAXiMmPs.jpg"},
+ml:{n:"Mobile Legends",i:"https://o.uguu.se/tMkTVgcu.jpg"},
+mc:{n:"Minecraft",i:"https://o.uguu.se/BxeOGKmE.jpg"},
+dana:{n:"DANA",i:"https://n.uguu.se/mwiDenUt.jpg"},
+gopay:{n:"GoPay",i:"https://n.uguu.se/ZptdczSw.jpg"},
+bri:{n:"BRI",i:"https://h.uguu.se/dLjUQpSo.jpg"},
+hok:{n:"Honor of Kings",i:"https://d.uguu.se/sicqQMpT.jpg"},
+pubg:{n:"PUBG",i:"https://d.uguu.se/vFvuOYRK.jpg"}
+};
+
+let stack=document.getElementById("stack");
+let history=document.getElementById("history");
+let sound=document.getElementById("sound");
+
+/* CLOCK */
+setInterval(()=>{
+let d=new Date();
+document.getElementById("clock").innerText=
+String(d.getHours()).padStart(2,'0')+":"+String(d.getMinutes()).padStart(2,'0');
+},1000);
+
+/* NOTIF */
+function send(){
+let v=document.getElementById("app").value;
+let t=document.getElementById("text").value;
+let custom=document.getElementById("customName").value;
+if(!v||!t)return;
+
+let app=apps[v];
+let name = custom ? custom : app.n;
+
+/* SOUND */
+sound.currentTime=0;
+sound.play();
+
+/* STACK NOTIF */
+let div=document.createElement("div");
+div.className="notif";
+div.innerHTML=`
+<div class="icon"><img src="${app.i}"></div>
+<div>
+<div>${name}</div>
+<div>${t}</div>
+</div>
+`;
+
+stack.prepend(div);
+
+/* AUTO REMOVE */
+setTimeout(()=>{
+div.style.opacity="0";
+setTimeout(()=>div.remove(),300);
+},4000);
+
+/* HISTORY */
+let h=document.createElement("div");
+h.className="item";
+h.innerHTML=`
+<img src="${app.i}">
+<div>${name}<br><small>${t}</small></div>
+`;
+history.prepend(h);
+}
+
+/* BLUR */
+function toggleBlur(){
+document.getElementById("blur").classList.toggle("active");
+}
+
+/* COLOR BUTTON CYCLE */
+let colors=["#1c1c1c","#ff3b30","#00c853","#2962ff","#7c4dff","#ffeb3b"];
+let i=0;
+
+function cycleColor(){
+i=(i+1)%colors.length;
+document.querySelectorAll("button").forEach(b=>{
+b.style.background=colors[i];
+});
+}
+
+/* SOUND FIX AUTOPLAY */
+document.addEventListener("click",()=>{
+sound.play().catch(()=>{});
+},{once:true});
+</script>
+
+</body>
+</html>
